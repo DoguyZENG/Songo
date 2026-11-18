@@ -254,6 +254,8 @@ function resign(l,remote){
 }
 // en ligne (PeerJS, connexion directe entre les deux navigateurs)
 const CH="ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const ICE={config:{iceServers:[{urls:"stun:stun.l.google.com:19302"},{urls:"stun:global.stun.twilio.com:3478"},{urls:["turn:openrelay.metered.ca:80","turn:openrelay.metered.ca:443","turns:openrelay.metered.ca:443?transport=tcp"],username:"openrelayproject",credential:"openrelayproject"}]}};
+function keep(p){p.on("disconnected",()=>{if(PEER==p&&!OL){nst("Connexion au serveur perdue, reconnexion…");try{p.reconnect()}catch(e){}}})}
 function myName(){const n=(S.n0||"").trim();return n=="Sud"||n=="Nord"?"":n}
 function nst(t){$("#net-st").textContent=t}
 function loadPeer(){return window.Peer?Promise.resolve():new Promise((ok,ko)=>{const e=document.createElement("script");e.src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js";e.onload=ok;e.onerror=ko;document.head.append(e)})}
@@ -263,8 +265,8 @@ $("#net").addEventListener("close",()=>{if(mode!=2){OL=0;netStop()}});
 async function netHost(){
  OL=0;netStop();nst("Connexion au serveur…");
  try{await loadPeer()}catch(e){return nst("Module réseau inaccessible : vérifiez votre connexion Internet.")}
- const code=Array.from({length:4},()=>CH[Math.random()*CH.length|0]).join(""),p=PEER=new Peer("songo-"+code);
- p.on("open",()=>nst("Code de la partie : "+code+" — en attente d’un adversaire…"));
+ const code=Array.from({length:4},()=>CH[Math.random()*CH.length|0]).join(""),p=PEER=new Peer("songo-"+code,ICE);keep(p);
+ p.on("open",()=>nst("Code de la partie : "+code+" — en attente d’un adversaire. Gardez cette fenêtre ouverte."));
  p.on("error",e=>{if(e.type=="unavailable-id")netHost();else nst("Erreur réseau : "+e.type)});
  p.on("connection",c=>{if(CONN){c.close();return}CONN=c;wire(c,1)})
 }
@@ -273,9 +275,9 @@ async function netJoin(){
  if(code.length!=4)return nst("Entrez le code à 4 caractères.");
  nst("Connexion…");
  try{await loadPeer()}catch(e){return nst("Module réseau inaccessible : vérifiez votre connexion Internet.")}
- const p=PEER=new Peer();
- p.on("open",()=>{const c=CONN=p.connect("songo-"+code,{reliable:true});wire(c,0);setTimeout(()=>{if(PEER==p&&!OL)nst("Aucune partie trouvée avec ce code.")},12000)});
- p.on("error",e=>nst(e.type=="peer-unavailable"?"Aucune partie trouvée avec ce code.":"Erreur réseau : "+e.type))
+ const p=PEER=new Peer(void 0,ICE);keep(p);
+ p.on("open",()=>{const c=CONN=p.connect("songo-"+code,{reliable:true});wire(c,0);setTimeout(()=>{if(PEER==p&&!OL)nst("Partie trouvée mais connexion impossible : votre réseau ou celui de l’hôte bloque la connexion directe. Essayez un autre réseau (Wi-Fi à la place des données mobiles, par exemple).")},20000)});
+ p.on("error",e=>nst(e.type=="peer-unavailable"?"Aucune partie en attente avec ce code : vérifiez le code et que l’hôte garde sa fenêtre « En ligne » ouverte, sans mettre l’appareil en veille.":"Erreur réseau : "+e.type))
 }
 function wire(c,host){
  const op=()=>{OL=1;nst("Connecté !");c.send({t:"hello",name:myName()})};
