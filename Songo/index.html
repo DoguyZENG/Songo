@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><title>Songo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root{--bg:#f1e6d3;--fg:#2a1a0e;--card:#e4d3b6;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c120b;--fg:#f1e6d3;--card:#2c1c11}}
+:root[data-theme="dark"]{--bg:#1c120b;--fg:#f1e6d3;--card:#2c1c11}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 "Trebuchet MS",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;padding:16px;gap:14px}
+h1{font:700 2.4rem Georgia,serif;margin:0;letter-spacing:.02em}
+#board{position:relative;margin-bottom:34px;background:linear-gradient(#9a6230,#6b4220);border-radius:8px;padding:14px;box-shadow:0 6px 0 #3b2314;width:min(100%,860px)}
+#board::before,#board::after{content:"";position:absolute;bottom:-34px;width:20px;height:40px;background:#5e3817;border-radius:0 0 4px 4px}
+#board::before{left:6%;transform:skewX(8deg)}#board::after{right:6%;transform:skewX(-8deg)}
+.row{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;background:#4a2c14;padding:6px;border-radius:4px}
+.mid{width:74%;margin:10px auto;background:var(--bg);box-shadow:inset 0 3px 8px #0006;border-radius:3px;color:var(--fg);display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 10px;padding:8px 14px;font-size:.9rem}
+.pit{aspect-ratio:1/1.15;border:0;border-radius:3px;background:linear-gradient(#b9c0c4,#8d969b);box-shadow:inset 0 2px 5px #0005;position:relative;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:6px;color:#1d1a17}
+.pit:disabled{cursor:default}
+.pit.ok{outline:3px solid #e8b04a;outline-offset:1px}
+.pit.hot{outline:3px solid #d62d20;outline-offset:1px}
+.mid b{display:inline-block}#board.flip .mid{flex-direction:row-reverse}
+.n{background:#1d1a17c0;color:#fff;border-radius:8px;padding:0 6px;bottom:4px;right:5px}
+.pit.cap{animation:capf .5s ease-in-out}
+@keyframes capf{0%,100%{transform:none}30%{transform:scale(1.12)}50%{transform:scale(.96) rotate(-2deg)}70%{transform:scale(1.06) rotate(2deg)}}
+.fly{position:fixed;z-index:5;width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#707070,#0d0d0d);pointer-events:none}
+.gain{position:fixed;z-index:6;font:800 1.7rem Georgia,serif;color:#ffd36a;text-shadow:0 2px 4px #000;pointer-events:none}
+#menu{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:8;width:min(92vw,520px);max-height:92vh;overflow:auto;box-shadow:0 0 0 100vmax #0009,0 10px 40px #0008}
+.pit.blink{outline:3px solid #7ec8ff;outline-offset:1px;animation:blk .6s ease-in-out infinite}
+@keyframes blk{50%{filter:brightness(1.7);box-shadow:0 0 0 5px #7ec8ff,0 0 20px #7ec8ff}}
+.pit.last{box-shadow:inset 0 2px 5px #0005,inset 0 0 0 3px #ffffffa0}
+.pit:focus-visible{outline:3px solid #7ec8ff}
+.seeds{display:flex;flex-wrap:wrap;gap:2px;justify-content:center;align-content:center;width:100%}
+.s{width:clamp(5px,1.6vw,12px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 30% 30%,#707070,#0d0d0d)}
+.n{position:absolute;bottom:3px;right:7px;font-size:.8rem;font-weight:700}
+.l{position:absolute;top:3px;left:7px;font-size:.65rem;opacity:.7}
+#st{min-height:3em;text-align:center;max-width:620px;margin:0}
+.card{background:var(--card);border-radius:14px;padding:14px 18px;text-align:center;max-width:620px}
+button.b{font:inherit;font-weight:700;padding:10px 18px;margin:4px;border:0;border-radius:10px;background:#8a5629;color:#fff;cursor:pointer}
+button.b:focus-visible{outline:3px solid #7ec8ff}
+[hidden]{display:none!important}
+body.home #board,body.home #st,body.home #menu,body.home #bar,body.home #log,body.home #end{display:none}
+#home{display:none}body.home #home{display:block}
+#bar{display:flex;flex-wrap:wrap;justify-content:center}#bar .b{padding:6px 12px;font-size:.9rem}
+#log{font-size:.85rem;opacity:.85;text-align:center;max-width:620px;margin:0}
+.mid i{font-style:normal}
+dialog{border:0;border-radius:14px;background:var(--card);color:var(--fg);width:min(92vw,520px);padding:18px}dialog::backdrop{background:#0008}dialog label{display:inline-block;margin:2px 8px 2px 0}dialog select,dialog input{font:inherit}
+.hs{display:flex;justify-content:center;margin:8px 0}.hs i{width:14px;height:14px;margin:4px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#707070,#0d0d0d);animation:bnc 1.1s ease-in-out infinite}
+.hs i:nth-child(2n){animation-delay:.15s}.hs i:nth-child(3n){animation-delay:.3s}
+@keyframes bnc{50%{transform:translateY(-10px)}}@keyframes spin{to{transform:rotate(1turn)}}@keyframes pop{from{transform:scale(1.9);opacity:.4}}
+.pit.hot .s:last-child{animation:pop .25s}
+.think::after{content:"";display:inline-block;width:.9em;height:.9em;margin-left:.5em;vertical-align:-2px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite}
+#splash{position:fixed;inset:0;z-index:9;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .4s}#splash.off{opacity:0;pointer-events:none}
+#board{background-image:repeating-linear-gradient(90deg,#0000 0 9px,#0000000f 9px 10px),linear-gradient(#9a6230,#6b4220)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></head><body class="home">
+<div id="splash"><div class="hs"></div><p>Chargement…</p></div>
+<h1>Songo</h1>
+<div class="card" id="home"><p>Le jeu de réflexion africain, à deux joueurs ou contre l’ordinateur.</p><div class="hs"></div><p id="stats" style="font-size:.9rem;margin:4px 0"></p><button class="b" onclick="play0()">Jouer</button><button class="b" onclick="$('#rules').showModal()">Règles</button><button class="b" onclick="openSet()">Paramètres</button></div>
+<div id="bar"><button class="b" onclick="goHome()">Accueil</button><button class="b" id="bUndo" onclick="undo()">Annuler</button><button class="b" onclick="hint()">Indice</button><button class="b" onclick="openFf()">Forfait</button><button class="b" onclick="$('#rules').showModal()">Règles</button><button class="b" onclick="openSet()">Paramètres</button></div>
+<p id="st">Choisissez un mode pour commencer.</p>
+<div id="board" aria-label="Plateau de songo">
+<div class="row" id="top"></div>
+<div class="mid"><span><i id="l0">Réserve Sud</i> : <b id="c0">0</b></span><span>Le plus de graines gagne</span><span><i id="l1">Réserve Nord</i> : <b id="c1">0</b></span></div>
+<div class="row" id="bot"></div></div>
+<div class="card" id="menu"><b>Nouvelle partie</b><br>
+<button class="b" onclick="start(0)">À deux joueurs</button><button class="b" onclick="netOpen()">En ligne</button>
+<br>Contre l’ordinateur :
+<button class="b" onclick="start(1,1)">Facile</button><button class="b" onclick="start(1,4)">Moyen</button><button class="b" onclick="start(1,6)">Difficile</button><br><button class="b" onclick="goHome()" style="background:transparent;color:inherit;text-decoration:underline">Retour à l’accueil</button>
+<p style="margin:6px 0 0;font-size:.9rem">Sud joue en bas, Nord en haut ; le premier joueur est tiré au sort. Les graines tournent dans le sens des aiguilles d’une montre. Les cases cerclées d’or sont jouables.</p></div>
+<div class="card" id="end" hidden><b id="res"></b><br>
+<button class="b" id="again" onclick="again()">Rejouer</button><small id="wait" hidden>L’hôte peut lancer une nouvelle partie.</small>
+<button class="b" onclick="menu()">Changer de mode</button></div>
+<p id="log" aria-live="polite"></p>
+<dialog id="set" oninput="read()"><h2 style="margin-top:0">Paramètres</h2>
+<p><label>Thème <select id="s-theme"><option value="auto">Automatique</option><option value="light">Clair</option><option value="dark">Sombre</option></select></label>
+<label>Vitesse <select id="s-speed"><option value="1.6">Lente</option><option value="1">Normale</option><option value="0.5">Rapide</option></select></label></p>
+<p><label><input type="checkbox" id="s-snd"> Sons</label><label><input type="checkbox" id="s-help"> Montrer les cases jouables</label></p>
+<p><label>Premier joueur <select id="s-first"><option value="-1">Tirage au sort</option><option value="0">Joueur du bas</option><option value="1">Joueur du haut</option></select></label></p>
+<p><label>Joueur du bas <input id="s-n0" maxlength="14"></label><label>Joueur du haut <input id="s-n1" maxlength="14"></label></p>
+<button class="b" type="button" onclick="this.closest('dialog').close()">Fermer</button></dialog>
+<dialog id="net"><h2 style="margin-top:0">Partie en ligne</h2><p>Jouez à distance : l’un crée la partie et partage le code, l’autre le saisit. L’hôte joue Sud, l’invité joue Nord (le plateau est retourné pour lui).</p>
+<p><button class="b" onclick="netHost()">Créer une partie</button></p>
+<p><label>Code <input id="net-code" maxlength="4" autocapitalize="characters" style="text-transform:uppercase;width:5em"></label><button class="b" onclick="netJoin()">Rejoindre</button></p>
+<p id="net-st" aria-live="polite"></p><button class="b" type="button" onclick="this.closest('dialog').close()">Fermer</button></dialog>
+<dialog id="ff"><h2 style="margin-top:0">Déclarer forfait ?</h2><p>La partie sera perdue immédiatement.</p><div id="ff-b"></div><button class="b" type="button" onclick="this.closest('dialog').close()">Annuler</button></dialog>
+<dialog id="over"><canvas id="cf" style="position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none"></canvas>
+<div style="position:relative;text-align:center"><h2 id="ov-t" style="margin:0 0 8px;font:700 2.2rem Georgia,serif"></h2><p id="ov-r"></p>
+<button class="b" id="ov-a" onclick="hideOv();again()">Rejouer</button><button class="b" onclick="hideOv();goHome()">Quitter</button>
+<p id="ov-w" hidden style="font-size:.9rem">L’hôte peut lancer une nouvelle partie.</p></div></dialog>
+<dialog id="rules"><h2 style="margin-top:0">Règles du songo</h2><p>Le plateau a 14 cases (7 par joueur), avec 5 graines par case. On ramasse toutes les graines d’une de ses cases et on les sème une à une, dans le sens des aiguilles d’une montre.</p><p>Si la dernière graine tombe chez l’adversaire dans une case qui contient alors 2, 3 ou 4 graines, on les capture, ainsi que les cases précédentes qui respectent la même condition.</p><p>Une case de plus de 13 graines est un grenier : on fait le tour du plateau, puis les graines restantes vont chez l’adversaire.</p><p>Certains coups sont interdits ; les cases cerclées d’or sont les coups permis. La partie finit quand le joueur qui doit jouer n’a plus de graines : celui qui en possède le plus (réserve + cases) gagne. Un joueur peut aussi déclarer forfait à tout moment s’il estime ne plus pouvoir gagner.</p><button class="b" type="button" onclick="this.closest('dialog').close()">Fermer</button></dialog>
+<script>
+const $=s=>document.querySelector(s),sum=(b,a,z)=>{let t=0;for(let i=a;i<=z;i++)t+=b[i];return t};
+const NM=["Sud","Nord"],T=matchMedia("(prefers-reduced-motion:reduce)").matches?0:1,sleep=m=>new Promise(r=>setTimeout(r,m*T*S.speed));
+let G,mode=0,lvl=4,busy=1,P=[];
+// indices 0..6 = S6..S0, 7..13 = N0..N6 (ordre du semis)
+const hum=p=>mode==0||(mode==1?p==0:p==ME),name=i=>i<7?"S"+(6-i):"N"+(i-7);
+function sim(s,p,c){
+ const b=s.b.slice(),cap=s.cap.slice(),own=p?7:0,lo=p?0:7,lc=p?13:6;
+ let n=b[c],path=[],cc=[],got=0,last=-1,i=c;b[c]=0;
+ if(n==1&&c==lc&&sum(s.b,own,own+6)==1){cap[p]++;return{b,cap,path,cc,got:1,store:1}}
+ if(n>13){
+  for(let k=0;k<13;k++){i=(i+1)%14;b[i]++;path.push(i)}
+  n-=13;if(n==1){cap[p]++;got=1;n=0}
+  for(let k=0;k<n;k++){i=lo+k%7;b[i]++;path.push(i);last=i}
+ }else for(let k=0;k<n;k++){i=(i+1)%14;b[i]++;path.push(i);last=i}
+ if(last>lo&&last<lo+7&&b[last]>=2&&b[last]<=4){
+  let j=last,t=0,l=[];
+  while(j>=lo&&b[j]>=2&&b[j]<=4){t+=b[j];l.push(j);j--}
+  if(sum(b,lo,lo+6)>t){l.forEach(j=>b[j]=0);cap[p]+=t;got+=t;cc=l}
+ }
+ return{b,cap,path,cc,got}
+}
+function moves(s,p){
+ const own=p?7:0,lc=p?13:6,b=s.b;
+ if(sum(b,own,own+6)==1&&b[lc]==1)return[lc];
+ let m=[];
+ for(let c=own;c<own+7;c++){
+  if(!b[c])continue;
+  if(c==lc&&b[c]==1)continue;
+  m.push(c)
+ }
+ if(m.length&&!sum(b,p?0:7,p?6:13)){const f=m.filter(c=>sum(sim(s,p,c).b,p?0:7,p?6:13)>0);if(f.length)m=f}
+ if(!m.length)for(let c=own;c<own+7;c++)if(b[c])m.push(c);
+ return m
+}
+const tot=s=>[s.cap[0]+sum(s.b,0,6),s.cap[1]+sum(s.b,7,13)];
+const WIN=36;/* 36 sur 70 = majorité : résultat mathématiquement acquis, sert seulement à élaguer la recherche */let DL=0,CNT=0;
+function ab(s,p,d,al,be,me){
+ if(!(++CNT&511)&&Date.now()>DL)throw 0;
+ if(s.cap[me]>=WIN)return 1e3+d;
+ if(s.cap[1-me]>=WIN)return-1e3-d;
+ const m=moves(s,p);
+ if(!m.length){const t=tot(s);return(t[me]-t[1-me])*10}
+ if(!d)return(s.cap[me]-s.cap[1-me])*10+sum(s.b,me?7:0,me?13:6)-sum(s.b,me?0:7,me?6:13);
+ const ch=m.map(c=>[c,sim(s,p,c)]).sort((x,y)=>y[1].got-x[1].got);
+ if(p==me){let v=-1e9;for(const[,r]of ch){v=Math.max(v,ab(r,1-p,d-1,al,be,me));al=Math.max(al,v);if(al>=be)break}return v}
+ let v=1e9;for(const[,r]of ch){v=Math.min(v,ab(r,1-p,d-1,al,be,me));be=Math.min(be,v);if(al>=be)break}return v
+}
+// p = joueur pour qui on cherche, L = niveau (1 facile, 4 moyen, 6 difficile), ms = budget de temps
+function best(p=1,L=lvl,ms=L>=6?1200:L>=4?500:150){
+ const m=moves(G,p);if(m.length==1)return m[0];
+ const maxd=L>=6?12:L;let res=m;DL=Date.now()+ms;CNT=0;
+ for(let d=1;d<=maxd;d++){
+  try{
+   let bs=-1e9,pick=[];
+   for(const c of m){const v=ab(sim(G,p,c),1-p,d-1,-1e9,1e9,p)+(L==1?Math.random()*30:0);if(v>bs){bs=v;pick=[c]}else if(v==bs)pick.push(c)}
+   res=pick
+  }catch(e){break}
+ }
+ return res[Math.random()*res.length|0]
+}
+// interface
+function build(f){
+ $("#top").innerHTML=$("#bot").innerHTML="";$("#board").classList.toggle("flip",!!f);
+ for(let k=0;k<7;k++)for(const [row,i] of (f?[["top",k],["bot",13-k]]:[["top",7+k],["bot",6-k]])){
+  const e=document.createElement("button");e.className="pit";e.title=name(i);
+  e.innerHTML='<i class="l">'+name(i)+'</i><div class="seeds"></div><span class="n"></span>';
+  e.onclick=()=>click(i);$("#"+row).append(e);P[i]=e
+ }
+}
+function draw(b,hot=[]){
+ const ok=!busy&&S.help&&hum(G.p)?moves({b,cap:G.cap},G.p):[];
+ for(let i=0;i<14;i++){
+  const e=P[i],n=b[i];
+  e.querySelector(".seeds").innerHTML='<span class="s"></span>'.repeat(Math.min(n,26));
+  e.querySelector(".n").textContent=n;
+    e.classList.toggle("ok",ok.includes(i));e.classList.toggle("hot",hot.includes(i));e.classList.toggle("last",i==LAST&&!hot.length);
+  e.setAttribute("aria-label",name(i)+" : "+n+" graine"+(n>1?"s":""));
+  e.disabled=busy
+ }
+ $("#c0").textContent=G.cap[0]+" (en jeu : "+sum(b,0,6)+")";$("#c1").textContent=G.cap[1]+" (en jeu : "+sum(b,7,13)+")"
+}
+function say(t){$("#st").textContent=t}
+function start(m,l,f){
+ mode=m;lvl=l||lvl;GID++;unl();
+ if(m!=2){if(PEER||CONN){OL=0;netStop()}ME=0}
+ build(m==2&&ME==1);Q=[];
+ G={b:Array(14).fill(5),cap:[0,0],p:f!=null?f:S.first<0?Math.random()<.5?0:1:S.first};LAST=-1;busy=0;LOG=[];H=[];showlog();
+ $("#menu").hidden=$("#end").hidden=hideOv();$("#bUndo").hidden=m==2;
+ $("#again").hidden=m==2&&ME==1;$("#wait").hidden=!(m==2&&ME==1);
+ apply();turn((f==null&&S.first<0?"Tirage au sort : ":"")+NM[G.p]+" commence.")
+}
+function again(){
+ if(mode!=2)return start(mode,lvl);
+ if(ME==0&&OL){const f=S.first<0?Math.random()<.5?0:1:S.first;CONN.send({t:"start",first:f});start(2,0,f)}
+}
+function menu(){$("#end").hidden=hideOv();$("#menu").hidden=false;say("Choisissez un mode pour commencer.")}
+function turn(msg=""){
+ draw(G.b);
+ say((msg?msg+" ":"")+"Au tour de "+NM[G.p]+(mode==1&&G.p?" (ordinateur)…":mode==2&&G.p!=ME?" (adversaire en ligne)…":"."));
+ const id=GID,m=moves(G,G.p);$("#st").classList.toggle("think",!hum(G.p));
+ if(m.length==1&&sum(G.b,G.p?7:0,G.p?13:6)==1&&G.b[G.p?13:6]==1&&(mode!=2||G.p==ME)){busy=1;draw(G.b);setTimeout(()=>{if(id==GID)play(m[0])},900);return}
+ if(mode==1&&G.p==1){busy=1;draw(G.b);setTimeout(()=>{if(id==GID)play(best())},600)}
+}
+function click(i){
+ if(busy)return;
+ if((i<7?0:1)!=G.p||!hum(G.p))return;
+ if(!moves(G,G.p).includes(i)){say("Coup non permis ici : interdit de jeu ou règle de solidarité. Choisissez une case cerclée d’or.");return}
+ play(i)
+}
+function bump(p){$("#c"+p).animate([{transform:"scale(1.7)",color:"#e8b04a"},{transform:"scale(1)"}],{duration:500})}
+async function capAnim(cc,b,p,got,id){
+ snd(180,.3);
+ if(!T){cc.forEach(i=>b[i]=0);draw(b);return}
+ draw(b,cc);cc.forEach(i=>P[i].classList.add("cap"));
+ await sleep(500);if(id!=GID)return;
+ const d=$("#c"+p).getBoundingClientRect(),fl=[];let k=0;
+ const lr=P[cc[cc.length-1]].getBoundingClientRect(),g=document.createElement("b");
+ g.className="gain";g.textContent="+"+got;g.style.left=lr.left+lr.width/2+"px";g.style.top=lr.top+"px";document.body.append(g);
+ g.animate([{transform:"translate(-50%,0)",opacity:1},{transform:"translate(-50%,-70px)",opacity:0}],{duration:1100*S.speed}).finished.then(()=>g.remove());
+ for(const i of cc){
+  const r=P[i].getBoundingClientRect(),n=Math.min(b[i],8);
+  for(let j=0;j<n;j++){
+   const e=document.createElement("i"),x=r.left+r.width/2+(Math.random()-.5)*r.width*.5,y=r.top+r.height/2+(Math.random()-.5)*r.height*.5;
+   e.className="fly";e.style.left=x-6+"px";e.style.top=y-6+"px";document.body.append(e);
+   fl.push(e.animate([{transform:"none",opacity:1},{transform:"translate("+(d.left+d.width/2-x)+"px,"+(d.top+d.height/2-y)+"px) scale(.4)",opacity:.9}],{duration:700*S.speed,delay:k++*45*S.speed,easing:"cubic-bezier(.5,0,.8,.5)",fill:"forwards"}).finished.then(()=>e.remove()))
+  }
+  b[i]=0
+ }
+ draw(b);cc.forEach(i=>P[i].classList.remove("cap"));
+ await Promise.all(fl)
+}
+async function play(c,net){
+ clrHint();
+ if(mode==2&&!net&&OL)CONN.send({t:"move",c});
+ busy=1;const id=GID,p=G.p,r=sim(G,p,c),b=G.b.slice();H.push({b:G.b.slice(),cap:G.cap.slice(),p,l:LOG.length,c:LAST});
+ b[c]=0;draw(b,[c]);await sleep(300);
+ for(const i of r.path){if(id!=GID)return;b[i]++;draw(b,[i]);snd(380+i*25);await sleep(150)}
+ if(r.cc.length)await capAnim(r.cc,b,p,r.got,id);
+ if(id!=GID)return;G={b:r.b,cap:r.cap,p:1-p};LAST=c;LOG.push(NM[p]+" : "+name(c)+(r.got?" (+"+r.got+")":""));showlog();
+ draw(G.b);if(r.got&&T)bump(p);
+ const msg=r.store?NM[p]+" met son dernier grain en réserve.":r.got?NM[p]+" capture "+r.got+" graine"+(r.got>1?"s":"")+".":NM[p]+" joue "+name(c)+".";
+ if(!moves(G,G.p).length)return fin2(msg);
+ busy=0;turn(msg);pump()
+}
+function pump(){
+ if(mode==2&&!busy&&G&&G.p!=ME&&Q.length){const c=Q.shift();if(moves(G,G.p).includes(c))play(c,1)}
+}
+// forfait
+function openFf(){
+ if(document.body.classList.contains("home")||!$("#end").hidden)return;
+ const b=$("#ff-b");b.innerHTML="";
+ for(const l of mode==0?[0,1]:[mode==1?0:ME]){
+  const e=document.createElement("button");e.className="b";e.textContent=mode==0?NM[l]+" déclare forfait":"Oui, déclarer forfait";
+  e.onclick=()=>{$("#ff").close();resign(l)};b.append(e)
+ }
+ $("#ff").showModal()
+}
+function resign(l,remote){
+ if(!$("#end").hidden)return;GID++;busy=1;
+ if(mode==2&&!remote&&OL)CONN.send({t:"ff"});
+ const w=1-l;record(w);draw(G.b);$("#st").classList.remove("think");
+ $("#res").textContent=NM[w]+" gagne : "+NM[l]+" déclare forfait.";say(NM[l]+" déclare forfait.");showEnd(w)
+}
+// en ligne (PeerJS, connexion directe entre les deux navigateurs)
+const CH="ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+function myName(){const n=(S.n0||"").trim();return n=="Sud"||n=="Nord"?"":n}
+function nst(t){$("#net-st").textContent=t}
+function loadPeer(){return window.Peer?Promise.resolve():new Promise((ok,ko)=>{const e=document.createElement("script");e.src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js";e.onload=ok;e.onerror=ko;document.head.append(e)})}
+function netStop(){try{CONN&&CONN.close()}catch(e){}try{PEER&&PEER.destroy()}catch(e){}CONN=PEER=null}
+function netOpen(){OL=0;netStop();nst("");$("#net").showModal()}
+$("#net").addEventListener("close",()=>{if(mode!=2){OL=0;netStop()}});
+async function netHost(){
+ OL=0;netStop();nst("Connexion au serveur…");
+ try{await loadPeer()}catch(e){return nst("Module réseau inaccessible : vérifiez votre connexion Internet.")}
+ const code=Array.from({length:4},()=>CH[Math.random()*CH.length|0]).join(""),p=PEER=new Peer("songo-"+code);
+ p.on("open",()=>nst("Code de la partie : "+code+" — en attente d’un adversaire…"));
+ p.on("error",e=>{if(e.type=="unavailable-id")netHost();else nst("Erreur réseau : "+e.type)});
+ p.on("connection",c=>{if(CONN){c.close();return}CONN=c;wire(c,1)})
+}
+async function netJoin(){
+ OL=0;netStop();const code=$("#net-code").value.trim().toUpperCase();
+ if(code.length!=4)return nst("Entrez le code à 4 caractères.");
+ nst("Connexion…");
+ try{await loadPeer()}catch(e){return nst("Module réseau inaccessible : vérifiez votre connexion Internet.")}
+ const p=PEER=new Peer();
+ p.on("open",()=>{const c=CONN=p.connect("songo-"+code,{reliable:true});wire(c,0);setTimeout(()=>{if(PEER==p&&!OL)nst("Aucune partie trouvée avec ce code.")},12000)});
+ p.on("error",e=>nst(e.type=="peer-unavailable"?"Aucune partie trouvée avec ce code.":"Erreur réseau : "+e.type))
+}
+function wire(c,host){
+ const op=()=>{OL=1;nst("Connecté !");c.send({t:"hello",name:myName()})};
+ c.open?op():c.on("open",op);
+ c.on("data",d=>onNet(d,host));
+ c.on("close",()=>{if(OL&&mode==2&&$("#end").hidden)lost();OL=0})
+}
+function onNet(d,host){
+ if(d.t=="hello"){RN=String(d.name||"").slice(0,14);if(host){const f=S.first<0?Math.random()<.5?0:1:S.first;ME=0;CONN.send({t:"start",first:f});startOnline(f)}}
+ else if(d.t=="start"&&!host){ME=1;startOnline(d.first)}
+ else if(d.t=="move"&&mode==2){Q.push(d.c);pump()}
+ else if(d.t=="ff"&&mode==2)resign(1-ME,1)
+}
+function startOnline(f){document.body.classList.remove("home");start(2,0,f);$("#net").close()}
+function lost(){GID++;busy=1;$("#st").classList.remove("think");$("#res").textContent="L’adversaire s’est déconnecté.";say("Connexion perdue.");showEnd(-2)}
+function hideOv(){const o=$("#over");if(o.open)o.close();CF=0;return true}
+function showEnd(w){
+ $("#end").hidden=false;
+ const win=w>=0&&(mode==0||(mode==1?w==0:w==ME));
+ $("#ov-t").textContent=w==-2?"Partie interrompue":w<0?"Match nul":mode==0?NM[w]+" gagne !":win?"Victoire !":"Défaite";
+ $("#ov-r").textContent=$("#res").textContent;
+ $("#ov-a").hidden=$("#again").hidden;$("#ov-w").hidden=$("#wait").hidden;
+ $("#over").showModal();if(win)confetti();if(w!=-2&&w!=-1)jingle(win)
+}
+let CF=0;
+function confetti(){
+ if(!T)return;const c=$("#cf"),x=c.getContext("2d");c.width=innerWidth;c.height=innerHeight;
+ const col=["#e8b04a","#d62d20","#3aa655","#4a90e2","#f1e6d3","#b455d6"],id=++CF,t0=performance.now();
+ const ps=Array.from({length:180},()=>({x:Math.random()*c.width,y:-20-Math.random()*c.height*.6,vx:(Math.random()-.5)*3,vy:2+Math.random()*4,w:6+Math.random()*7,h:4+Math.random()*6,r:Math.random()*6,vr:(Math.random()-.5)*.4,c:col[Math.random()*col.length|0]}));
+ (function f(t){
+  if(id!=CF||t-t0>5000){x.clearRect(0,0,c.width,c.height);return}
+  x.clearRect(0,0,c.width,c.height);
+  for(const p of ps){p.x+=p.vx+Math.sin(p.y/40);p.y+=p.vy;p.r+=p.vr;x.save();x.translate(p.x,p.y);x.rotate(p.r);x.fillStyle=p.c;x.fillRect(-p.w/2,-p.h/2,p.w,p.h);x.restore()}
+  requestAnimationFrame(f)
+ })(t0)
+}
+function fin(msg,w){
+ let t=tot(G);
+ if(w<0)w=t[0]==t[1]?-1:t[0]>t[1]?0:1;
+ else t=G.cap;
+ busy=1;
+ if(G.cap[0]<40&&G.cap[1]<40){G.cap=t;G.b=Array(14).fill(0)}
+ draw(G.b);
+ const r=w<0?"Match nul ("+t[0]+" – "+t[1]+").":NM[w]+" gagne ("+t[0]+" – "+t[1]+" pour Sud – Nord) !";
+ say(msg);$("#res").textContent=r;$("#end").hidden=false
+}
+function fin2(msg){
+ const t=tot(G),w=t[0]==t[1]?-1:t[0]>t[1]?0:1;record(w);
+ busy=1;draw(G.b);
+ const d=i=>G.cap[i]+" en réserve + "+sum(G.b,i*7,i*7+6)+" en jeu = "+t[i];
+ $("#res").textContent=(w<0?"Match nul !":NM[w]+" gagne !")+" "+NM[0]+" : "+d(0)+" · "+NM[1]+" : "+d(1)+".";
+ $("#st").classList.remove("think");say(msg+" La partie est terminée : un camp est vide.");showEnd(w)
+}
+let PEER,CONN,ME=0,RN="",Q=[],OL=0,LAST=-1,S={st:{},theme:"auto",snd:true,speed:1,help:true,first:-1,n0:"Sud",n1:"Nord"},LOG=[],H=[],GID=0,AC;
+try{Object.assign(S,JSON.parse(localStorage.getItem("songo")||"{}"))}catch(e){}
+function apply(){
+ const r=document.documentElement;
+ if(S.theme=="auto")r.removeAttribute("data-theme");else r.dataset.theme=S.theme;
+ NM[0]=(S.n0||"").trim()||"Sud";NM[1]=(S.n1||"").trim()||"Nord";
+ if(mode==2){const d=["Sud","Nord"];NM[ME]=myName()||d[ME];NM[1-ME]=RN||d[1-ME]}
+ $("#l0").textContent="Réserve "+NM[0];$("#l1").textContent="Réserve "+NM[1];
+ if(G)draw(G.b)
+}
+function read(){
+ S.theme=$("#s-theme").value;S.speed=+$("#s-speed").value;S.snd=$("#s-snd").checked;S.help=$("#s-help").checked;S.first=+$("#s-first").value;S.n0=$("#s-n0").value;S.n1=$("#s-n1").value;
+ try{localStorage.setItem("songo",JSON.stringify(S))}catch(e){}
+ apply()
+}
+function fill(){
+ $("#s-theme").value=S.theme;$("#s-speed").value=String(S.speed);$("#s-snd").checked=!!S.snd;$("#s-help").checked=!!S.help;$("#s-first").value=String(S.first);$("#s-n0").value=S.n0;$("#s-n1").value=S.n1
+}
+function openSet(){fill();$("#set").showModal()}
+function unl(){try{AC=AC||new AudioContext();AC.resume()}catch(e){}}
+function snd(f,d=.06){
+ if(!S.snd||!AC)return;
+ try{const o=AC.createOscillator(),g=AC.createGain();o.type="triangle";o.frequency.value=f;g.gain.value=.08;o.connect(g);g.connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+d);o.stop(AC.currentTime+d)}catch(e){}
+}
+function record(w){
+ if(mode!=1)return;const a=S.st[lvl]=S.st[lvl]||[0,0,0];a[w<0?2:w==0?0:1]++;
+ try{localStorage.setItem("songo",JSON.stringify(S))}catch(e){}showStats()
+}
+function showStats(){
+ const n={1:"Facile",4:"Moyen",6:"Difficile"},t=Object.keys(n).filter(k=>S.st[k]).map(k=>n[k]+" : "+S.st[k][0]+" V / "+S.st[k][1]+" D / "+S.st[k][2]+" N");
+ $("#stats").textContent=t.length?"Contre l’ordinateur — "+t.join(" · "):""
+}
+let HT;
+function clrHint(){clearTimeout(HT);P.forEach(e=>e.classList.remove("blink"))}
+function hint(){
+ if(busy||!hum(G.p))return;
+ clrHint();const c=best(G.p,6,400);P[c].classList.add("blink");HT=setTimeout(clrHint,3000)
+}
+// sons de fin de partie : [fréquence, début, durée, forme, volume]
+const HARPE=[523,587,659,784,880,1047,1175,1319,1568,1760,2093].map((f,k)=>[f,k*.07,.9,"sine",.08]);
+const TUBA=[[98,0,.4,"triangle",.3],[92,.42,.4,"triangle",.3],[87,.84,.4,"triangle",.3],[82,1.26,1.1,"triangle",.3]];
+function playNotes(ns){
+ unl();if(!AC)return;
+ for(const[f,t,d,ty,v]of ns)try{
+  const o=AC.createOscillator(),g=AC.createGain(),t0=AC.currentTime+t;
+  o.type=ty;o.frequency.value=f;g.gain.setValueAtTime(v,t0);g.gain.exponentialRampToValueAtTime(.001,t0+d);
+  o.connect(g);g.connect(AC.destination);o.start(t0);o.stop(t0+d)
+ }catch(e){}
+}
+function jingle(win){if(S.snd)playNotes(win?HARPE:TUBA)}
+function showlog(){$("#log").textContent=LOG.length?"Derniers coups : "+LOG.slice(-8).join(" · "):""}
+function undo(){
+ if(mode==2||!H.length)return;GID++;clrHint();P.forEach(e=>e.classList.remove("cap"));
+ do{const h=H.pop();G={b:h.b,cap:h.cap,p:h.p};LAST=h.c;LOG.length=h.l}while(mode==1&&G.p&&H.length);
+ $("#end").hidden=hideOv();showlog();busy=0;turn("Coup annulé.")
+}
+function goHome(){if(PEER||CONN){OL=0;netStop()}GID++;busy=1;$("#end").hidden=hideOv();$("#menu").hidden=false;document.body.classList.add("home")}
+function play0(){document.body.classList.remove("home")}
+build();showStats();G={b:Array(14).fill(5),cap:[0,0],p:0};document.querySelectorAll(".hs").forEach(e=>e.innerHTML="<i></i>".repeat(7));fill();apply();setTimeout(()=>$("#splash").classList.add("off"),900);
+</script></body></html>
